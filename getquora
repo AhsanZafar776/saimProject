@@ -1,0 +1,103 @@
+import xlsxwriter
+import pandas as pd
+import time
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+def getlinks(keyword,pages):
+    browser = webdriver.Chrome(executable_path='/Users/ahsanzafar/Downloads/chromedriver')
+    browser.get("https://www.quora.com/search?q="+keyword+"&type=question")
+
+
+    time.sleep(2)
+    elem = browser.find_element_by_tag_name("body")
+    no_of_pagedowns = pages
+    while no_of_pagedowns:
+        elem.send_keys(Keys.PAGE_DOWN)
+        time.sleep(2)
+        no_of_pagedowns-=1
+    post_elems =browser.find_elements_by_xpath('//a[@class="q-box qu-display--block qu-cursor--pointer qu-hover--textDecoration--underline qu-userSelect--text Link___StyledBox-t2xg9c-0 roKEj"]')
+    links=[]
+    for post in post_elems:
+        links.append(post.get_attribute("href"))
+
+    browser.quit()
+    return links
+
+links = getlinks('spotify',3)
+
+
+dict={}
+titlelist=[]
+print('num of questions:',len(links))
+
+try:
+    for l in links:
+        browser = webdriver.Chrome(executable_path='/Users/ahsanzafar/Downloads/chromedriver')
+        browser.get(l)
+
+        time.sleep(2)
+        elem = browser.find_element_by_tag_name("body")
+
+        no_of_pagedowns = 4
+
+        while no_of_pagedowns:
+            elem.send_keys(Keys.PAGE_DOWN)
+            time.sleep(2)
+            no_of_pagedowns-=1
+
+        post_elems =browser.find_element_by_xpath('//span[@class="q-box qu-userSelect--text"]')
+
+
+        title= post_elems.text
+        print('title:',title)
+
+
+        answers =browser.find_elements_by_xpath('//div[@class="q-flex qu-alignItems--center qu-justifyContent--center"]')
+        try:
+            for button in answers:
+                button.click()
+        except:
+            print('error')
+
+        anslist=[]
+        for answer in answers:
+            anslist.append(answer.text)
+
+        titlelist.append(title)
+
+
+        print('num of ans:',len(anslist))
+
+
+        dict[title] = anslist
+
+
+
+        browser.quit()
+
+    data = pd.DataFrame(dict,columns=titlelist)
+    datatoexcel =  pd.ExcelWriter("Quora_QnA.xlsx",engine='xlsxwriter')
+    data.to_excel(datatoexcel,sheet_name='sheet1')
+    datatoexcel.save()
+except:
+    print('q-error')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
