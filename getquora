@@ -1,3 +1,4 @@
+import numpy as np
 import xlsxwriter
 import pandas as pd
 import time
@@ -6,18 +7,20 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.chrome.options import Options
 
 def getlinks(keyword,pages):
     browser = webdriver.Chrome(executable_path='/Users/ahsanzafar/Downloads/chromedriver')
     browser.get("https://www.quora.com/search?q="+keyword+"&type=question")
 
 
-    time.sleep(2)
+    time.sleep(1)
     elem = browser.find_element_by_tag_name("body")
     no_of_pagedowns = pages
     while no_of_pagedowns:
         elem.send_keys(Keys.PAGE_DOWN)
-        time.sleep(2)
+        time.sleep(1)
         no_of_pagedowns-=1
     post_elems =browser.find_elements_by_xpath('//a[@class="q-box qu-display--block qu-cursor--pointer qu-hover--textDecoration--underline qu-userSelect--text Link___StyledBox-t2xg9c-0 roKEj"]')
     links=[]
@@ -27,66 +30,86 @@ def getlinks(keyword,pages):
     browser.quit()
     return links
 
-links = getlinks('spotify',3)
+links = getlinks('spotify',1)
 
 
-dict={}
+dictframe={}
 titlelist=[]
 print('num of questions:',len(links))
 
-try:
-    for l in links:
-        browser = webdriver.Chrome(executable_path='/Users/ahsanzafar/Downloads/chromedriver')
-        browser.get(l)
 
-        time.sleep(2)
-        elem = browser.find_element_by_tag_name("body")
+for l in links:
+    try:
+            browser = webdriver.Chrome(executable_path='/Users/ahsanzafar/Downloads/chromedriver')
+            browser.get(l)
 
-        no_of_pagedowns = 4
-
-        while no_of_pagedowns:
-            elem.send_keys(Keys.PAGE_DOWN)
             time.sleep(2)
-            no_of_pagedowns-=1
+            elem = browser.find_element_by_tag_name("body")
 
-        post_elems =browser.find_element_by_xpath('//span[@class="q-box qu-userSelect--text"]')
+            no_of_pagedowns = 1
 
+            while no_of_pagedowns:
+                elem.send_keys(Keys.PAGE_DOWN)
+                time.sleep(2)
+                no_of_pagedowns-=1
 
-        title= post_elems.text
-        print('title:',title)
-
-
-        answers =browser.find_elements_by_xpath('//div[@class="q-flex qu-alignItems--center qu-justifyContent--center"]')
-        try:
-            for button in answers:
-                button.click()
-        except:
-            print('error')
-
-        anslist=[]
-        for answer in answers:
-            anslist.append(answer.text)
-
-        titlelist.append(title)
+            post_elems =browser.find_element_by_xpath('//span[@class="q-box qu-userSelect--text"]')
 
 
-        print('num of ans:',len(anslist))
+            title= post_elems.text
+            print('title:',title)
 
 
-        dict[title] = anslist
+            answers = browser.find_elements_by_xpath('//div[@class="q-relative spacing_log_answer_content puppeteer_test_answer_content"]')
+            try:
+                for button in answers:
+                    #print(button.text)
+                    time.sleep(0.5)
+                    elem.send_keys(Keys.PAGE_DOWN)
+                    elem.send_keys(Keys.PAGE_DOWN)
+                    elem.send_keys(Keys.PAGE_DOWN)
+                    button.click()
+            except:
+                print('error')
+
+            time.sleep(1)
+            #fanswers = browser.find_elements_by_xpath('//div[@class="q-relative spacing_log_answer_content puppeteer_test_answer_content"]')
+            anslist=[]
+            for answer in answers:
+                print(answer.text)
+                anslist.append(answer.text)
+
+            titlelist.append(title)
+
+
+            print('num of ans:',len(anslist))
+
+
+            dictframe[title] = anslist
 
 
 
-        browser.quit()
-
-    data = pd.DataFrame(dict,columns=titlelist)
-    datatoexcel =  pd.ExcelWriter("Quora_QnA.xlsx",engine='xlsxwriter')
-    data.to_excel(datatoexcel,sheet_name='sheet1')
-    datatoexcel.save()
-except:
-    print('q-error')
+            browser.quit()
 
 
+
+    except:
+        print('q-error')
+
+print(titlelist)
+print('|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||\n|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
+print(dict)
+
+print('totals items',len(dictframe))
+
+
+
+data = pd.DataFrame(dict,columns=titlelist)
+
+#data = pd.DataFrame(dict([ (k,pd.Series(v)) for k,v in dictframe.items() ]))
+datatoexcel = pd.ExcelWriter("Quora_QnA.xlsx", engine='xlsxwriter')
+data.to_excel(datatoexcel, sheet_name='sheet1')
+datatoexcel.save()
 
 
 
